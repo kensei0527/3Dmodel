@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3Dモデル表情コントローラー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #000;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            display: none;
+        }
+
+        /* アルファカット用コントローラーを追加 */
+        #alpha-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+        }
+
+        #alpha-slider {
+            width: 200px;
+        }
+
+        #alpha-value {
+            margin-left: 10px;
+            display: inline-block;
+            width: 40px;
+            text-align: right;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div id="controls">
+        <button id="neutral-button">通常</button>
+        <button id="angry-button">怒り</button>
+        <button id="fun-button">楽しい</button>
+        <button id="joy-button">喜び</button>
+        <button id="sorrow-button">悲しい</button>
+    </div>
+    <div id="alpha-controls">
+        <label for="alpha-slider">Alpha Cutout値:</label>
+        <input type="range" id="alpha-slider" min="0" max="1" step="0.01" value="0.5">
+        <span id="alpha-value">0.50</span>
+    </div>
+    <div id="loading">モデルを読み込み中...</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="main.js"></script>
+    <!-- es-module-shimsはimportmapを古いブラウザでも使えるようにするためのポリフィル -->
+    <script src="https://unpkg.com/es-module-shims@1.5.1/dist/es-module-shims.min.js" async></script>
+    <script type="importmap">
+    {
+    "imports": {
+        "three": "https://unpkg.com/three@0.149.0/build/three.module.js",
+        "three/examples/jsm/": "https://unpkg.com/three@0.149.0/examples/jsm/"
+    }
+    }
+    </script>
+
+    <script type="module">
+        //import { VRM } from '@pixiv/three-vrm';
+        import { VRM } from 'https://unpkg.com/@pixiv/three-vrm@3.3.0/lib/three-vrm.module.js';
+
+
+        const loading = document.getElementById('loading');
+        loading.style.display = 'block';
+
+        const controller = new ModelAnimationController();
+        
+        async function init() {
+            try {
+                await controller.loadModel('./models/3DModel_2.vrm');
+                controller.animate();
+                
+                loading.style.display = 'none';
+
+                // 表情切り替えボタンの設定
+                document.getElementById('neutral-button').onclick = () => {
+                    controller.changeExpressionSmooth('neutral');
+                };
+                document.getElementById('angry-button').onclick = () => {
+                    controller.changeExpressionSmooth('angry');
+                };
+                document.getElementById('fun-button').onclick = () => {
+                    controller.changeExpressionSmooth('fun');
+                };
+                document.getElementById('joy-button').onclick = () => {
+                    controller.changeExpressionSmooth('joy');
+                };
+                document.getElementById('sorrow-button').onclick = () => {
+                    controller.changeExpressionSmooth('sorrow');
+                };
+
+                // アルファカット値調整スライダーの設定
+                const alphaSlider = document.getElementById('alpha-slider');
+                const alphaValueDisplay = document.getElementById('alpha-value');
+                alphaSlider.addEventListener('input', (event) => {
+                    const value = parseFloat(event.target.value);
+                    alphaValueDisplay.textContent = value.toFixed(2);
+                    controller.setAlphaTest(value);
+                });
+
+            } catch (error) {
+                console.error('初期化エラー:', error);
+                loading.textContent = 'エラーが発生しました。ページを再読み込みしてください。';
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
